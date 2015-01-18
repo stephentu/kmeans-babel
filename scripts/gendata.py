@@ -24,7 +24,7 @@ def main():
 
     # Write two files
     np.savetxt('data/points.txt', pts)
-    np.savetxt('data/seeds.txt', pts)
+    np.savetxt('data/seeds.txt', seeds)
 
 
 if __name__ == '__main__':
