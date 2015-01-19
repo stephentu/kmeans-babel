@@ -3,6 +3,10 @@ package main
 import (
   "fmt"
   "math"
+  "strings"
+  "strconv"
+  "os"
+  "io/ioutil"
 )
 
 // this horrible language has no generics
@@ -73,21 +77,61 @@ func Which(v *Vec, centers []*Vec) uint {
   return ArgMin(Dists(v, centers));
 }
 
+func Centroid(pts []*Vec) *Vec {
+  v := *pts[0]
+  for _, elem := range pts[1:] {
+    v = v.add(elem)
+  }
+  v = v.mult(1. / float64(len(pts)))
+  return &v
+}
+
 func KMeans(points []*Vec, seeds []*Vec, iters uint) []*Vec {
   clusters := seeds
   for i := uint(0); i < iters; i++ {
     assignments := make([][]*Vec, len(clusters))
-    // slices are annoying as hell, so let's just be lazy here
-    for j := 0; j < len(assignments); j++ {
-      assignments[i] = make([]*Vec, 0, len(points))
+    for idx := 0; idx < len(clusters); idx++ {
+      assignments[idx] = make([]*Vec, 0)
+    }
+    for _, elem := range points {
+      idx := Which(elem, clusters)
+      assignments[idx] = append(assignments[idx], elem)
+    }
+    for idx, pts := range assignments {
+      if len(pts) > 0 {
+        clusters[idx] = Centroid(pts)
+      }
     }
   }
   return clusters
 }
 
+func Parse(s []string) []*Vec {
+  v := make([]*Vec, 0, len(s))
+  for _, line := range s {
+    toks := strings.Split(strings.TrimSpace(line), " ")
+    pts := make([]float64, 0, len(toks))
+    for _, tok := range toks {
+      f, _ := strconv.ParseFloat(tok, 64)
+      // ignore error
+      pts = append(pts, f)
+    }
+    v = append(v, &Vec{pts})
+  }
+  return v
+}
+
 func main() {
-  v := Vec{[]float64{1,2,3}}
-  fmt.Println(v.add(&v))
-  fmt.Println(v.norm())
-  fmt.Println(ArgMin([]float64{1,2,3}))
+  pointsFile := os.Args[1]
+  seedsFile := os.Args[2]
+
+  pointsRaw, _ := ioutil.ReadFile(pointsFile)
+  seedsRaw, _ := ioutil.ReadFile(seedsFile)
+
+  points := Parse(strings.Split(strings.TrimSpace(string(pointsRaw)), "\n"))
+  seeds := Parse(strings.Split(strings.TrimSpace(string(seedsRaw)), "\n"))
+
+  for _, elem := range KMeans(points, seeds, 20) {
+    fmt.Println(elem)
+  }
 }
